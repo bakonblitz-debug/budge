@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * INSTRUCTIONS: Add this channel to your config/logging.php 'channels' array.
+ *
+ * In config/logging.php, find the 'channels' array and add:
+ */
+
+// 'import' => [
+//     'driver' => 'daily',
+//     'path' => storage_path('logs/import.log'),
+//     'level' => 'debug',
+//     'days' => 30,
+// ],
+//
+// 'audit' => [
+//     'driver' => 'daily',
+//     'path' => storage_path('logs/audit.log'),
+//     'level' => 'debug',
+//     'days' => 90,
+// ],

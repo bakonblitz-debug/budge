@@ -1,0 +1,41 @@
+# ──────────────────────────────────────────────
+# Environment
+# ──────────────────────────────────────────────
+.env
+docker-compose.override.yml
+
+# ──────────────────────────────────────────────
+# Tooling state
+# ──────────────────────────────────────────────
+.claude/
+
+# Working notes / plans — local only
+tmp/
+todo.md
+
+# ──────────────────────────────────────────────
+# Scaffold artifacts
+# ──────────────────────────────────────────────
+budget-app-scaffold.tar.gz
+
+# ──────────────────────────────────────────────
+# IDE
+# ──────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ──────────────────────────────────────────────
+# Laravel (inside src/)
+# These are also in src/.gitignore but belt+suspenders
+# ──────────────────────────────────────────────
+src/vendor/
+src/node_modules/
+src/.env
+src/storage/*.key
+src/storage/logs/*
+!src/storage/logs/.gitkeep

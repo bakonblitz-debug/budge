@@ -1,0 +1,116 @@
+services:
+  # ──────────────────────────────────────────────
+  # Nginx — Reverse proxy
+  # ──────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: budgetapp-nginx
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./src:/var/www/html:cached
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - budgetapp
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────
+  # App — PHP 8.3 FPM + Xdebug
+  # ──────────────────────────────────────────────
+  app:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: budgetapp-app
+    environment:
+      XDEBUG_MODE: ${XDEBUG_MODE:-off}
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-budgetapp}
+      DB_USERNAME: ${DB_USERNAME:-budgetapp}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - ./src:/var/www/html:cached
+      - ./docker/php/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini:ro
+      - composer_cache:/home/www-data/.composer
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm-healthcheck || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - budgetapp
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ──────────────────────────────────────────────
+  # Node — Vite dev server (auto-start)
+  # ──────────────────────────────────────────────
+  node:
+    build:
+      context: ./docker/node
+      dockerfile: Dockerfile
+    container_name: budgetapp-node
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    volumes:
+      - ./src:/var/www/html:cached
+      - node_modules:/var/www/html/node_modules
+    environment:
+      VITE_PORT: 5173
+      VITE_HMR_PORT: ${VITE_PORT:-5174}
+    networks:
+      - budgetapp
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────────
+  # MySQL 8
+  # ──────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: budgetapp-mysql
+    ports:
+      - "${DB_EXTERNAL_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
+      MYSQL_DATABASE: ${DB_DATABASE:-budgetapp}
+      MYSQL_USER: ${DB_USERNAME:-budgetapp}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-rootsecret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - budgetapp
+    restart: unless-stopped
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --slow-query-log=1
+      --slow-query-log-file=/var/lib/mysql/slow.log
+      --long-query-time=1
+
+volumes:
+  mysql_data:
+    driver: local
+  composer_cache:
+    driver: local
+  node_modules:
+    driver: local
+
+networks:
+  budgetapp:
+    driver: bridge
